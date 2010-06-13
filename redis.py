@@ -113,13 +113,9 @@ def read_callback():
     val.dispatch()
 
     # database stats
-    # TODO: Do we need to support more than 1k databases?
-    for i in range(0, 1000):
-        key = 'db%d' % i
-        # I don't think it's possible to have nonsequential database
-        # numbers, so break as soon as we don't find one.
-        if key not in info:
-            break
+    for key in info:
+        if not key.startswith('db'):
+            continue
         val = collectd.Values()
         val.plugin = 'redis'
         val.type = 'gauge'
