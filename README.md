@@ -26,8 +26,6 @@ Add the following to your collectd config **or** use the included redis.conf.
     
     <Plugin python>
       ModulePath "/opt/collectd/lib/collectd/plugins/python/"
-      LogTraces true
-      Interactive false
       Import "redis"
     
       <Module redis>
