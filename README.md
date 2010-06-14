@@ -32,5 +32,4 @@ Add the following to your collectd config **or** use the included redis.conf.
 TODO
 ----
  * Install script (is there a correct place for Python plugins?)
- * Verbose flag to enable extra logging
  * Include & show some example RRD graphs

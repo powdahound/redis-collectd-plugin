@@ -36,22 +36,28 @@ REDIS_HOST = 'localhost'
 # Port to connect on. Override in config by specifying 'Port'.
 REDIS_PORT = 6379
 
+# Verbose logging on/off. Override in config by specifying 'Verbose'.
+VERBOSE_LOGGING = False
+
 
 def fetch_info():
     """Connect to Redis server and request info"""
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((REDIS_HOST, REDIS_PORT))
+        log_verbose('Connected to Redis at %s:%s' % (REDIS_HOST, REDIS_PORT))
     except socket.error, e:
         collectd.error('redis plugin: Error connecting to %s:%d - %r'
                        % (REDIS_HOST, REDIS_PORT, e))
         return None
     fp = s.makefile('r')
+    log_verbose('Sending info command')
     s.sendall('info\n')
 
     info_data = []
     while True:
         data = fp.readline().strip()
+        log_verbose('Received data: %s' % data)
         if data == '':
             break
         if data[0] == '$':
@@ -86,15 +92,18 @@ def parse_info(info_lines):
 
 def configure_callback(conf):
     """Receive configuration block"""
-    global REDIS_HOST, REDIS_PORT
+    global REDIS_HOST, REDIS_PORT, VERBOSE_LOGGING
     for node in conf.children:
         if node.key == 'Host':
             REDIS_HOST = node.values[0]
         elif node.key == 'Port':
             REDIS_PORT = int(node.values[0])
+        elif node.key == 'Verbose':
+            VERBOSE_LOGGING = bool(node.values[0])
         else:
             collectd.warning('redis plugin: Unknown config key: %s.'
                              % node.key)
+    log_verbose('Configured with host=%s, port=%s' % (REDIS_HOST, REDIS_PORT))
 
 def dispatch_value(info, key, type, type_instance=None):
     """Read a key from info response data and dispatch a value"""
@@ -105,14 +114,19 @@ def dispatch_value(info, key, type, type_instance=None):
     if not type_instance:
         type_instance = key
 
+    value = int(info[key])
+    log_verbose('Sending value: %s=%s' % (type_instance, value))
+
     val = collectd.Values(plugin='redis')
     val.type = type
     val.type_instance = type_instance
-    val.values = [int(info[key])]
+    val.values = [value]
     val.dispatch()
 
 def read_callback():
+    log_verbose('Read callback called')
     info = fetch_info()
+
     if not info:
         collectd.error('redis plugin: No info received')
         return
@@ -125,13 +139,13 @@ def read_callback():
 
     # database stats
     for key in info:
-        if not key.startswith('db'):
-            continue
-        val = collectd.Values(plugin='redis')
-        val.type = 'gauge'
-        val.type_instance = '%s-keys' % key
-        val.values = [int(info[key]['keys'])]
-        val.dispatch()
+        if key.startswith('db'):
+            dispatch_value(info[key], 'keys', 'gauge', '%s-keys' % key)
+
+def log_verbose(msg):
+    if not VERBOSE_LOGGING:
+        return
+    collectd.info('redis plugin [verbose]: %s' % msg)
 
 
 # register callbacks
