@@ -25,7 +25,7 @@ Add the following to your collectd config **or** use the included redis.conf.
     </LoadPlugin>
     
     <Plugin python>
-      ModulePath "/opt/collectd/lib/collectd/plugins/python/"
+      ModulePath "/opt/collectd/lib/collectd/plugins/python"
       Import "redis"
     
       <Module redis>
