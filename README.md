@@ -3,6 +3,12 @@ redis-collectd-plugin
 
 A [Redis](http://redis.google.code.com) plugin for [collectd](http://collectd.org) using collectd's [Python plugin](http://collectd.org/documentation/manpages/collectd-python.5.shtml).
 
+Data captured includes:
+ * Memory used
+ * Commands processed per second
+ * Number of connected clients
+ * Number of keys stored (per database)
+
 Install
 -------
  1. Place redis.py in /opt/collectd/lib/collectd/plugins/python (assuming you have collectd installed to /opt/collectd).
