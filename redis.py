@@ -39,19 +39,23 @@ REDIS_PORT = 6379
 
 def fetch_info():
     """Connect to Redis server and request info"""
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((REDIS_HOST, REDIS_PORT))
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((REDIS_HOST, REDIS_PORT))
+    except socket.error, e:
+        collectd.error('redis plugin: Error connecting to %s:%d - %r'
+                       % (REDIS_HOST, REDIS_PORT, e))
+        return None
     fp = s.makefile('r')
     s.sendall('info\n')
 
     info_data = []
     while True:
-        data = fp.readline()
+        data = fp.readline().strip()
+        if data == '':
+            break
         if data[0] == '$':
             continue
-        if data == '\r\n':
-            break
-        data = data[:-2] # remove \r\n
         info_data.append(data)
 
     s.close()
@@ -61,9 +65,15 @@ def parse_info(info_lines):
     """Parse info response from Redis"""
     info = {}
     for line in info_lines:
+        if ':' not in line:
+            collectd.warning('redis plugin: Bad format for info line: %s'
+                             % line)
+            continue
+
         key, val = line.split(':')
 
-        # handle multi-value keys (for dbs)
+        # Handle multi-value keys (for dbs).
+        # db lines look like "db0:keys=10,expire=0"
         if ',' in val:
             split_val = val.split(',')
             val = {}
@@ -75,6 +85,7 @@ def parse_info(info_lines):
     return info
 
 def configure_callback(conf):
+    """Receive configuration block"""
     global REDIS_HOST, REDIS_PORT
     for node in conf.children:
         if node.key == 'Host':
@@ -85,39 +96,38 @@ def configure_callback(conf):
             collectd.warning('redis plugin: Unknown config key: %s.'
                              % node.key)
 
+def dispatch_value(info, key, type, type_instance=None):
+    """Read a key from info response data and dispatch a value"""
+    if key not in info:
+        collectd.warning('redis plugin: Info key not found: %s' % key)
+        return
+
+    if not type_instance:
+        type_instance = key
+
+    val = collectd.Values(plugin='redis')
+    val.type = type
+    val.type_instance = type_instance
+    val.values = [int(info[key])]
+    val.dispatch()
+
 def read_callback():
     info = fetch_info()
+    if not info:
+        collectd.error('redis plugin: No info received')
+        return
 
-    # commands_processed
-    val = collectd.Values()
-    val.plugin = 'redis'
-    val.type = 'counter'
-    val.type_instance = 'commands_processed'
-    val.values = [int(info['total_commands_processed'])]
-    val.dispatch()
-
-    # connected_clients
-    val = collectd.Values()
-    val.plugin = 'redis'
-    val.type = 'gauge'
-    val.type_instance = 'connected_clients'
-    val.values = [int(info['connected_clients'])]
-    val.dispatch()
-
-    # used_memory
-    val = collectd.Values()
-    val.plugin = 'redis'
-    val.type = 'bytes'
-    val.type_instance = 'used_memory'
-    val.values = [int(info['used_memory'])]
-    val.dispatch()
+    # send high-level values
+    dispatch_value(info, 'total_commands_processed', 'counter',
+                   'commands_processed')
+    dispatch_value(info, 'connected_clients', 'gauge')
+    dispatch_value(info, 'used_memory', 'bytes')
 
     # database stats
     for key in info:
         if not key.startswith('db'):
             continue
-        val = collectd.Values()
-        val.plugin = 'redis'
+        val = collectd.Values(plugin='redis')
         val.type = 'gauge'
         val.type_instance = '%s-keys' % key
         val.values = [int(info[key]['keys'])]
