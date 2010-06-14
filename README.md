@@ -33,6 +33,7 @@ Add the following to your collectd config **or** use the included redis.conf.
       <Module redis>
         Host "localhost"
         Port 6379
+        Verbose false
       </Module>
     </Plugin>
 
