@@ -18,7 +18,7 @@
 #
 # About this plugin:
 #   This plugin uses collectd's Python plugin to record Redis information.
-# 
+#
 # collectd:
 #   http://collectd.org
 # Redis:
@@ -67,6 +67,7 @@ def fetch_info():
     s.close()
     return parse_info(info_data)
 
+
 def parse_info(info_lines):
     """Parse info response from Redis"""
     info = {}
@@ -90,6 +91,7 @@ def parse_info(info_lines):
         info[key] = val
     return info
 
+
 def configure_callback(conf):
     """Receive configuration block"""
     global REDIS_HOST, REDIS_PORT, VERBOSE_LOGGING
@@ -104,6 +106,7 @@ def configure_callback(conf):
             collectd.warning('redis plugin: Unknown config key: %s.'
                              % node.key)
     log_verbose('Configured with host=%s, port=%s' % (REDIS_HOST, REDIS_PORT))
+
 
 def dispatch_value(info, key, type, type_instance=None):
     """Read a key from info response data and dispatch a value"""
@@ -122,6 +125,7 @@ def dispatch_value(info, key, type, type_instance=None):
     val.type_instance = type_instance
     val.values = [value]
     val.dispatch()
+
 
 def read_callback():
     log_verbose('Read callback called')
@@ -142,6 +146,7 @@ def read_callback():
         if key.startswith('db'):
             dispatch_value(info[key], 'keys', 'gauge', '%s-keys' % key)
 
+
 def log_verbose(msg):
     if not VERBOSE_LOGGING:
         return
@@ -151,4 +156,3 @@ def log_verbose(msg):
 # register callbacks
 collectd.register_config(configure_callback)
 collectd.register_read(read_callback)
-
