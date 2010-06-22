@@ -47,4 +47,3 @@ These graphs were created using collectd's [rrdtool plugin](http://collectd.org/
 TODO
 ----
  * Install script (is there a correct place for Python plugins?)
- * Include & show some example RRD graphs
