@@ -39,10 +39,10 @@ Graph examples
 --------------
 These graphs were created using collectd's [rrdtool plugin](http://collectd.org/wiki/index.php/Plugin:RRDtool) and [drraw](http://web.taranis.org/drraw/).
 
-![Clients connected][http://github.com/powdahound/redis-collectd-plugin/raw/master/screenshots/graph_clients_connected.png]
-![Commands/sec][http://github.com/powdahound/redis-collectd-plugin/raw/master/screenshots/graph_commands_per_sec.png]
-![db0 keys][http://github.com/powdahound/redis-collectd-plugin/raw/master/screenshots/graph_db0_keys.png]
-![Memory used][http://github.com/powdahound/redis-collectd-plugin/raw/master/screenshots/graph_memory_used.png]
+![Clients connected](http://github.com/powdahound/redis-collectd-plugin/raw/master/screenshots/graph_clients_connected.png)
+![Commands/sec](http://github.com/powdahound/redis-collectd-plugin/raw/master/screenshots/graph_commands_per_sec.png)
+![db0 keys](http://github.com/powdahound/redis-collectd-plugin/raw/master/screenshots/graph_db0_keys.png)
+![Memory used](http://github.com/powdahound/redis-collectd-plugin/raw/master/screenshots/graph_memory_used.png)
 
 TODO
 ----
