@@ -44,6 +44,10 @@ These graphs were created using collectd's [rrdtool plugin](http://collectd.org/
 ![db0 keys](http://github.com/powdahound/redis-collectd-plugin/raw/master/screenshots/graph_db0_keys.png)
 ![Memory used](http://github.com/powdahound/redis-collectd-plugin/raw/master/screenshots/graph_memory_used.png)
 
+Requirements
+------------
+ * collectd 4.9+
+
 TODO
 ----
  * Install script (is there a correct place for Python plugins?)
