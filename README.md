@@ -26,28 +26,15 @@ Add the following to your collectd config **or** use the included redis.conf.
     
     <Plugin python>
       ModulePath "/opt/collectd/lib/collectd/plugins/python"
-      Import "redis"
+      Import "redis_info"
     
-      <Module redis>
+      <Module redis_info>
         Host "localhost"
         Port 6379
         Verbose false
       </Module>
     </Plugin>
 
-Graph examples
---------------
-These graphs were created using collectd's [rrdtool plugin](http://collectd.org/wiki/index.php/Plugin:RRDtool) and [drraw](http://web.taranis.org/drraw/).
-
-![Clients connected](http://github.com/powdahound/redis-collectd-plugin/raw/master/screenshots/graph_clients_connected.png)
-![Commands/sec](http://github.com/powdahound/redis-collectd-plugin/raw/master/screenshots/graph_commands_per_sec.png)
-![db0 keys](http://github.com/powdahound/redis-collectd-plugin/raw/master/screenshots/graph_db0_keys.png)
-![Memory used](http://github.com/powdahound/redis-collectd-plugin/raw/master/screenshots/graph_memory_used.png)
-
 Requirements
 ------------
  * collectd 4.9+
-
-TODO
-----
- * Install script (is there a correct place for Python plugins?)
