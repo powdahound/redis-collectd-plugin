@@ -7,8 +7,11 @@ Data captured includes:
 
  * Memory used
  * Commands processed per second
- * Number of connected clients
+ * Number of connected clients and slaves
+ * Number of blocked clients
  * Number of keys stored (per database)
+ * Uptime
+ * Changes since last save
 
 Install
 -------
