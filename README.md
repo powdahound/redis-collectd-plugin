@@ -15,7 +15,7 @@ Data captured includes:
 
 Install
 -------
- 1. Place redis.py in /opt/collectd/lib/collectd/plugins/python (assuming you have collectd installed to /opt/collectd).
+ 1. Place redis_info.py in /opt/collectd/lib/collectd/plugins/python (assuming you have collectd installed to /opt/collectd).
  2. Configure the plugin (see below).
  3. Restart collectd.
 
