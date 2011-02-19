@@ -26,9 +26,9 @@ Add the following to your collectd config **or** use the included redis.conf.
     
     <Plugin python>
       ModulePath "/opt/collectd/lib/collectd/plugins/python"
-      Import "redis"
+      Import "redis_info"
     
-      <Module redis>
+      <Module redis_info>
         Host "localhost"
         Port 6379
         Verbose false
@@ -47,7 +47,3 @@ These graphs were created using collectd's [rrdtool plugin](http://collectd.org/
 Requirements
 ------------
  * collectd 4.9+
-
-TODO
-----
- * Install script (is there a correct place for Python plugins?)

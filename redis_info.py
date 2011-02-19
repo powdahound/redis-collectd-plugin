@@ -1,4 +1,4 @@
-# redis-collectd-plugin - redis.py
+# redis-collectd-plugin - redis_info.py
 #
 # This program is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the
@@ -47,7 +47,7 @@ def fetch_info():
         s.connect((REDIS_HOST, REDIS_PORT))
         log_verbose('Connected to Redis at %s:%s' % (REDIS_HOST, REDIS_PORT))
     except socket.error, e:
-        collectd.error('redis plugin: Error connecting to %s:%d - %r'
+        collectd.error('redis_info plugin: Error connecting to %s:%d - %r'
                        % (REDIS_HOST, REDIS_PORT, e))
         return None
     fp = s.makefile('r')
@@ -73,7 +73,7 @@ def parse_info(info_lines):
     info = {}
     for line in info_lines:
         if ':' not in line:
-            collectd.warning('redis plugin: Bad format for info line: %s'
+            collectd.warning('redis_info plugin: Bad format for info line: %s'
                              % line)
             continue
 
@@ -103,7 +103,7 @@ def configure_callback(conf):
         elif node.key == 'Verbose':
             VERBOSE_LOGGING = bool(node.values[0])
         else:
-            collectd.warning('redis plugin: Unknown config key: %s.'
+            collectd.warning('redis_info plugin: Unknown config key: %s.'
                              % node.key)
     log_verbose('Configured with host=%s, port=%s' % (REDIS_HOST, REDIS_PORT))
 
@@ -111,7 +111,7 @@ def configure_callback(conf):
 def dispatch_value(info, key, type, type_instance=None):
     """Read a key from info response data and dispatch a value"""
     if key not in info:
-        collectd.warning('redis plugin: Info key not found: %s' % key)
+        collectd.warning('redis_info plugin: Info key not found: %s' % key)
         return
 
     if not type_instance:
@@ -120,7 +120,7 @@ def dispatch_value(info, key, type, type_instance=None):
     value = int(info[key])
     log_verbose('Sending value: %s=%s' % (type_instance, value))
 
-    val = collectd.Values(plugin='redis')
+    val = collectd.Values(plugin='redis_info')
     val.type = type
     val.type_instance = type_instance
     val.values = [value]
@@ -136,13 +136,19 @@ def read_callback():
         return
 
     # send high-level values
-    dispatch_value(info, 'total_commands_processed', 'counter',
-                   'commands_processed')
+    dispatch_value(info, 'uptime_in_seconds','gauge')
     dispatch_value(info, 'connected_clients', 'gauge')
+    dispatch_value(info, 'connected_slaves', 'gauge')
+    dispatch_value(info, 'blocked_clients', 'gauge')
     dispatch_value(info, 'used_memory', 'bytes')
-
-    # database stats
+    dispatch_value(info, 'changes_since_last_save', 'gauge')
+    dispatch_value(info, 'total_connections_received', 'counter', 'connections_recieved')
+    dispatch_value(info, 'total_commands_processed', 'counter','commands_processed')
+    
+    # database and vm stats
     for key in info:
+        if key.startswith('vm_stats_'):
+            dispatch_value(info, key, 'gauge') 
         if key.startswith('db'):
             dispatch_value(info[key], 'keys', 'gauge', '%s-keys' % key)
 
