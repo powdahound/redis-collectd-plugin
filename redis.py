@@ -52,7 +52,7 @@ def fetch_info():
         return None
     fp = s.makefile('r')
     log_verbose('Sending info command')
-    s.sendall('info\n')
+    s.sendall('info\r\n')
 
     info_data = []
     while True:
