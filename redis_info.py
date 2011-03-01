@@ -85,7 +85,7 @@ def parse_info(info_lines):
             split_val = val.split(',')
             val = {}
             for sub_val in split_val:
-                k, v = sub_val.split('=')
+                k, _, v = sub_val.rpartition('=')
                 val[k] = v
 
         info[key] = val
