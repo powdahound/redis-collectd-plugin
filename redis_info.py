@@ -54,18 +54,12 @@ def fetch_info():
     log_verbose('Sending info command')
     s.sendall('info\r\n')
 
-    info_data = []
-    while True:
-        data = fp.readline().strip()
-        log_verbose('Received data: %s' % data)
-        if data == '':
-            break
-        if data[0] == '$':
-            continue
-        info_data.append(data)
-
+    status_line = fp.readline()
+    content_length = int(status_line[1:-1]) # status_line looks like: $<content_length>
+    data = fp.read(content_length)
+    log_verbose('Received data: %s' % data)
     s.close()
-    return parse_info(info_data)
+    return parse_info(data.split("\n"))
 
 
 def parse_info(info_lines):
@@ -89,6 +83,7 @@ def parse_info(info_lines):
                 val[k] = v
 
         info[key] = val
+    info["changes_since_last_save"] = info.get("changes_since_last_save", info.get("rdb_changes_since_last_save"))
     return info
 
 
