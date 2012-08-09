@@ -83,6 +83,7 @@ def parse_info(info_lines):
                 val[k] = v
 
         info[key] = val
+    info["changes_since_last_save"] = info.get("changes_since_last_save", info.get("rdb_changes_since_last_save"))
     return info
 
 
