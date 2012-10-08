@@ -66,6 +66,9 @@ def parse_info(info_lines):
     """Parse info response from Redis"""
     info = {}
     for line in info_lines:
+        if "" == line:
+            continue
+        
         if ':' not in line:
             collectd.warning('redis_info plugin: Bad format for info line: %s'
                              % line)
