@@ -59,16 +59,18 @@ def fetch_info():
     data = fp.read(content_length)
     log_verbose('Received data: %s' % data)
     s.close()
-    return parse_info(data.split("\n"))
+
+    linesep = '\r\n' if '\r\n' in data else '\n'
+    return parse_info(data.split(linesep))
 
 
 def parse_info(info_lines):
     """Parse info response from Redis"""
     info = {}
     for line in info_lines:
-        if "" == line:
+        if "" == line or line.startswith('#'):
             continue
-        
+
         if ':' not in line:
             collectd.warning('redis_info plugin: Bad format for info line: %s'
                              % line)
