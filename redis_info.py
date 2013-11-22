@@ -144,7 +144,7 @@ def read_callback():
     dispatch_value(info, 'used_memory', 'bytes')
     dispatch_value(info, 'changes_since_last_save', 'gauge')
     dispatch_value(info, 'total_connections_received', 'counter',
-                   'connections_recieved')
+                   'connections_received')
     dispatch_value(info, 'total_commands_processed', 'counter',
                    'commands_processed')
 
