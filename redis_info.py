@@ -124,7 +124,7 @@ def configure_callback(conf):
         else:
             collectd.warning('redis_info plugin: Unknown config key: %s.'
                              % node.key)
-    log_verbose('Configured with host=%s, port=%s' % (REDIS_HOST, REDIS_PORT))
+    log_verbose('Configured with host=%s, port=%s, using_auth=%s' % (REDIS_HOST, REDIS_PORT, REDIS_AUTH!=None))
 
 
 def dispatch_value(info, key, type, type_instance=None):
