@@ -36,6 +36,9 @@ REDIS_HOST = 'localhost'
 # Port to connect on. Override in config by specifying 'Port'.
 REDIS_PORT = 6379
 
+# Auth, default is None (unused). Override in config by specifying 'Auth'.
+REDIS_AUTH = None
+
 # Verbose logging on/off. Override in config by specifying 'Verbose'.
 VERBOSE_LOGGING = False
 
@@ -50,7 +53,21 @@ def fetch_info():
         collectd.error('redis_info plugin: Error connecting to %s:%d - %r'
                        % (REDIS_HOST, REDIS_PORT, e))
         return None
+
     fp = s.makefile('r')
+
+    if REDIS_AUTH is not None:
+        log_verbose('Sending auth command')
+        s.sendall('auth %s\r\n' % (REDIS_AUTH))
+
+        status_line = fp.readline()
+        if not status_line.startswith('+OK'):
+            # -ERR invalid password
+            # -ERR Client sent AUTH, but no password is set
+            collectd.error('redis_info plugin: Error sending auth to %s:%d - %r'
+                           % (REDIS_HOST, REDIS_PORT, status_line))
+            return None
+
     log_verbose('Sending info command')
     s.sendall('info\r\n')
 
@@ -94,12 +111,14 @@ def parse_info(info_lines):
 
 def configure_callback(conf):
     """Receive configuration block"""
-    global REDIS_HOST, REDIS_PORT, VERBOSE_LOGGING
+    global REDIS_HOST, REDIS_PORT, REDIS_AUTH, VERBOSE_LOGGING
     for node in conf.children:
         if node.key == 'Host':
             REDIS_HOST = node.values[0]
         elif node.key == 'Port':
             REDIS_PORT = int(node.values[0])
+        elif node.key == 'Auth':
+            REDIS_AUTH = node.values[0]
         elif node.key == 'Verbose':
             VERBOSE_LOGGING = bool(node.values[0])
         else:
