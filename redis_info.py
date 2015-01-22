@@ -28,6 +28,7 @@
 
 import collectd
 import socket
+import re
 
 
 # Host to connect to. Override in config by specifying 'Host'.
@@ -95,8 +96,9 @@ def parse_info(info_lines):
 
         key, val = line.split(':')
 
-        # Handle multi-value keys (for dbs).
+        # Handle multi-value keys (for dbs and slaves).
         # db lines look like "db0:keys=10,expire=0"
+        # slave lines look like "slave0:ip=192.168.0.181,port=6379,state=online,offset=1650991674247,lag=1"
         if ',' in val:
             split_val = val.split(',')
             val = {}
@@ -105,7 +107,15 @@ def parse_info(info_lines):
                 val[k] = v
 
         info[key] = val
+
     info["changes_since_last_save"] = info.get("changes_since_last_save", info.get("rdb_changes_since_last_save"))
+
+    # For each slave add an additional entry that is the replication delay
+    regex = re.compile("slave\d+")
+    for key in info:
+        if regex.match(key):
+            info[key]['delay'] = int(info['master_repl_offset']) - int(info[key]['offset'])
+
     return info
 
 
@@ -167,12 +177,21 @@ def read_callback():
     dispatch_value(info, 'total_commands_processed', 'counter',
                    'commands_processed')
 
+    # send replication stats, but only if they exist (some belong to master only, some to slaves only)
+    if 'master_repl_offset' in info: dispatch_value(info, 'master_repl_offset', 'gauge')
+    if 'master_last_io_seconds_ago' in info: dispatch_value(info, 'master_last_io_seconds_ago', 'gauge')
+    if 'slave_repl_offset' in info: dispatch_value(info, 'slave_repl_offset', 'gauge')
+
     # database and vm stats
     for key in info:
+        if key.startswith('repl_'):
+            dispatch_value(info, key, 'gauge')
         if key.startswith('vm_stats_'):
             dispatch_value(info, key, 'gauge')
         if key.startswith('db'):
             dispatch_value(info[key], 'keys', 'gauge', '%s-keys' % key)
+        if key.startswith('slave'):
+            dispatch_value(info[key], 'delay', 'gauge', '%s-delay' % key)
 
 
 def log_verbose(msg):

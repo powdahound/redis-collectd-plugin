@@ -12,6 +12,7 @@ Data captured includes:
  * Number of keys stored (per database)
  * Uptime
  * Changes since last save
+ * Replication delay (per slave)
 
 Install
 -------
