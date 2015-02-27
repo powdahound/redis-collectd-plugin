@@ -30,43 +30,34 @@ import collectd
 import socket
 import re
 
-
-# Host to connect to. Override in config by specifying 'Host'.
-REDIS_HOST = 'localhost'
-
-# Port to connect on. Override in config by specifying 'Port'.
-REDIS_PORT = 6379
-
-# Auth, default is None (unused). Override in config by specifying 'Auth'.
-REDIS_AUTH = None
-
 # Verbose logging on/off. Override in config by specifying 'Verbose'.
 VERBOSE_LOGGING = False
 
+CONFIGS = []
 
-def fetch_info():
+def fetch_info( conf ):
     """Connect to Redis server and request info"""
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect((REDIS_HOST, REDIS_PORT))
-        log_verbose('Connected to Redis at %s:%s' % (REDIS_HOST, REDIS_PORT))
+        s.connect((conf[ 'host' ], conf['port']))
+        log_verbose('Connected to Redis at %s:%s' % (conf[ 'host' ], conf['port']))
     except socket.error, e:
         collectd.error('redis_info plugin: Error connecting to %s:%d - %r'
-                       % (REDIS_HOST, REDIS_PORT, e))
+                       % (conf[ 'host' ], conf['port'], e))
         return None
 
     fp = s.makefile('r')
 
-    if REDIS_AUTH is not None:
+    if conf['auth'] is not None:
         log_verbose('Sending auth command')
-        s.sendall('auth %s\r\n' % (REDIS_AUTH))
+        s.sendall('auth %s\r\n' % (conf['auth']))
 
         status_line = fp.readline()
         if not status_line.startswith('+OK'):
             # -ERR invalid password
             # -ERR Client sent AUTH, but no password is set
             collectd.error('redis_info plugin: Error sending auth to %s:%d - %r'
-                           % (REDIS_HOST, REDIS_PORT, status_line))
+                           % (conf[ 'host' ], conf['port'], status_line))
             return None
 
     log_verbose('Sending info command')
@@ -118,30 +109,41 @@ def parse_info(info_lines):
 
     return info
 
-
 def configure_callback(conf):
     """Receive configuration block"""
-    global REDIS_HOST, REDIS_PORT, REDIS_AUTH, VERBOSE_LOGGING
+    host = None
+    port = None
+    auth = None
+
     for node in conf.children:
-        if node.key == 'Host':
-            REDIS_HOST = node.values[0]
-        elif node.key == 'Port':
-            REDIS_PORT = int(node.values[0])
-        elif node.key == 'Auth':
-            REDIS_AUTH = node.values[0]
-        elif node.key == 'Verbose':
-            VERBOSE_LOGGING = bool(node.values[0])
+        key = node.key.lower()
+        val = node.values[0]
+
+        if key == 'host':
+            host = val
+        elif key == 'port':
+            port = int(val)
+        elif key == 'auth':
+            auth = val
+        elif key == 'verbose':
+            global VERBOSE_LOGGING
+            VERBOSE_LOGGING = bool(node.values[0]) or VERBOSE_LOGGING
         else:
-            collectd.warning('redis_info plugin: Unknown config key: %s.'
-                             % node.key)
-    log_verbose('Configured with host=%s, port=%s, using_auth=%s' % (REDIS_HOST, REDIS_PORT, REDIS_AUTH!=None))
+            collectd.warning('redis_info plugin: Unknown config key: %s.' % key )
+            continue
 
+    log_verbose('Configured with host=%s, port=%s, using_auth=%s' % ( host, port, auth!=None))
 
-def dispatch_value(info, key, type, type_instance=None):
+    CONFIGS.append( { 'host': host, 'port': port, 'auth':auth } )
+
+def dispatch_value(info, key, type, plugin_instance=None, type_instance=None):
     """Read a key from info response data and dispatch a value"""
     if key not in info:
         collectd.warning('redis_info plugin: Info key not found: %s' % key)
         return
+
+    if not plugin_instance:
+        plugin_instance = 'unknown redis'
 
     if not type_instance:
         type_instance = key
@@ -152,47 +154,51 @@ def dispatch_value(info, key, type, type_instance=None):
     val = collectd.Values(plugin='redis_info')
     val.type = type
     val.type_instance = type_instance
+    val.plugin_instance = plugin_instance
     val.values = [value]
     val.dispatch()
 
-
 def read_callback():
-    log_verbose('Read callback called')
-    info = fetch_info()
+    for conf in CONFIGS:
+        get_metrics( conf )
+
+def get_metrics( conf ):
+    info = fetch_info( conf )
 
     if not info:
         collectd.error('redis plugin: No info received')
         return
 
+    plugin_instance = '{host}:{port}'.format(host=conf['host'], port=conf['port'])
+
     # send high-level values
-    dispatch_value(info, 'uptime_in_seconds','gauge')
-    dispatch_value(info, 'connected_clients', 'gauge')
-    dispatch_value(info, 'connected_slaves', 'gauge')
-    dispatch_value(info, 'blocked_clients', 'gauge')
-    dispatch_value(info, 'evicted_keys', 'gauge')
-    dispatch_value(info, 'used_memory', 'bytes')
-    dispatch_value(info, 'changes_since_last_save', 'gauge')
-    dispatch_value(info, 'total_connections_received', 'counter',
+    dispatch_value(info, 'uptime_in_seconds','gauge', plugin_instance)
+    dispatch_value(info, 'connected_clients', 'gauge', plugin_instance)
+    dispatch_value(info, 'connected_slaves', 'gauge', plugin_instance)
+    dispatch_value(info, 'blocked_clients', 'gauge', plugin_instance)
+    dispatch_value(info, 'evicted_keys', 'gauge', plugin_instance)
+    dispatch_value(info, 'used_memory', 'bytes', plugin_instance)
+    dispatch_value(info, 'changes_since_last_save', 'gauge', plugin_instance)
+    dispatch_value(info, 'total_connections_received', 'counter', plugin_instance,
                    'connections_received')
-    dispatch_value(info, 'total_commands_processed', 'counter',
+    dispatch_value(info, 'total_commands_processed', 'counter', plugin_instance,
                    'commands_processed')
 
     # send replication stats, but only if they exist (some belong to master only, some to slaves only)
-    if 'master_repl_offset' in info: dispatch_value(info, 'master_repl_offset', 'gauge')
-    if 'master_last_io_seconds_ago' in info: dispatch_value(info, 'master_last_io_seconds_ago', 'gauge')
-    if 'slave_repl_offset' in info: dispatch_value(info, 'slave_repl_offset', 'gauge')
+    if 'master_repl_offset' in info: dispatch_value(info, 'master_repl_offset', 'gauge', plugin_instance)
+    if 'master_last_io_seconds_ago' in info: dispatch_value(info, 'master_last_io_seconds_ago', 'gauge', plugin_instance)
+    if 'slave_repl_offset' in info: dispatch_value(info, 'slave_repl_offset', 'gauge', plugin_instance)
 
     # database and vm stats
     for key in info:
         if key.startswith('repl_'):
-            dispatch_value(info, key, 'gauge')
+            dispatch_value(info, key, 'gauge', plugin_instance)
         if key.startswith('vm_stats_'):
-            dispatch_value(info, key, 'gauge')
+            dispatch_value(info, key, 'gauge', plugin_instance)
         if key.startswith('db'):
-            dispatch_value(info[key], 'keys', 'gauge', '%s-keys' % key)
+            dispatch_value(info[key], 'keys', 'gauge', plugin_instance, '%s-keys' % key)
         if key.startswith('slave'):
-            dispatch_value(info[key], 'delay', 'gauge', '%s-delay' % key)
-
+            dispatch_value(info[key], 'delay', 'gauge', plugin_instance, '%s-delay' % key)
 
 def log_verbose(msg):
     if not VERBOSE_LOGGING:
