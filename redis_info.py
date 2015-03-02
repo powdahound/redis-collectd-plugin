@@ -144,6 +144,7 @@ def dispatch_value(info, key, type, plugin_instance=None, type_instance=None):
 
     if not plugin_instance:
         plugin_instance = 'unknown redis'
+        collectd.error('redis_info plugin: plugin_instance is not set, Info key: %s' % key)
 
     if not type_instance:
         type_instance = key
