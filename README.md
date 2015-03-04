@@ -39,6 +39,60 @@ Add the following to your collectd config **or** use the included redis.conf.
       </Module>
     </Plugin>
 
+### Multiple Redis instances
+
+You can configure to monitor multiple redis instances by the same machine by repeating the <Module> section, such as:
+
+```
+<Plugin python>
+  ModulePath "/opt/collectd_plugins"
+  Import "redis_info"
+
+  <Module redis_info>
+    Host "127.0.0.1"
+    Port 9100
+    Verbose true
+  </Module>
+
+  <Module redis_info>
+    Host "127.0.0.1"
+    Port 9101
+    Verbose true
+  </Module>
+  
+  <Module redis_info>
+    Host "127.0.0.1"
+    Port 9102
+    Verbose true
+  </Module>
+</Plugin>
+```
+
+These 3 redis instances listen on different ports, they have different plugin_instance combined by Host and Port:
+
+```
+"plugin_instance" => "127.0.0.1:9100",
+"plugin_instance" => "127.0.0.1:9101",
+"plugin_instance" => "127.0.0.1:9102",
+```
+
+These values will be part of the metric name emitted by collectd, e.g. ```collectd.redis_info.127.0.0.1:9100.bytes.used_memory```
+
+If you want to set a static value for the plugin instance, use the ```Instance``` configuration option:
+
+```
+...
+  <Module redis_info>
+    Host "127.0.0.1"
+    Port 9102
+    Instance "redis-prod"
+  </Module>
+...
+```
+This will result in metric names like: ```collectd.redis_info.redis-prod.bytes.used_memory```
+
+```Instance``` can be empty, in this case the name of the metric will not contain any reference to the host/port. If it is omitted, the host:port value is added to the metric name.
+
 Graph examples
 --------------
 These graphs were created using collectd's [rrdtool plugin](http://collectd.org/wiki/index.php/Plugin:RRDtool) and [drraw](http://web.taranis.org/drraw/).
