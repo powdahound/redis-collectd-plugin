@@ -114,6 +114,7 @@ def configure_callback(conf):
     host = None
     port = None
     auth = None
+    instance = None
 
     for node in conf.children:
         key = node.key.lower()
@@ -128,13 +129,15 @@ def configure_callback(conf):
         elif key == 'verbose':
             global VERBOSE_LOGGING
             VERBOSE_LOGGING = bool(node.values[0]) or VERBOSE_LOGGING
+        elif key == 'instance':
+            instance = val
         else:
             collectd.warning('redis_info plugin: Unknown config key: %s.' % key )
             continue
 
-    log_verbose('Configured with host=%s, port=%s, using_auth=%s' % ( host, port, auth!=None))
+    log_verbose('Configured with host=%s, port=%s, instance name=%s, using_auth=%s' % ( host, port, instance, auth!=None))
 
-    CONFIGS.append( { 'host': host, 'port': port, 'auth':auth } )
+    CONFIGS.append( { 'host': host, 'port': port, 'auth':auth, 'instance':instance } )
 
 def dispatch_value(info, key, type, plugin_instance=None, type_instance=None):
     """Read a key from info response data and dispatch a value"""
@@ -142,7 +145,7 @@ def dispatch_value(info, key, type, plugin_instance=None, type_instance=None):
         collectd.warning('redis_info plugin: Info key not found: %s' % key)
         return
 
-    if not plugin_instance:
+    if plugin_instance is None:
         plugin_instance = 'unknown redis'
         collectd.error('redis_info plugin: plugin_instance is not set, Info key: %s' % key)
 
@@ -170,7 +173,9 @@ def get_metrics( conf ):
         collectd.error('redis plugin: No info received')
         return
 
-    plugin_instance = '{host}:{port}'.format(host=conf['host'], port=conf['port'])
+    plugin_instance = conf['instance']
+    if plugin_instance is None:
+        plugin_instance = '{host}:{port}'.format(host=conf['host'], port=conf['port'])
 
     # send high-level values
     dispatch_value(info, 'uptime_in_seconds','gauge', plugin_instance)
