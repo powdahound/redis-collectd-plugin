@@ -190,6 +190,10 @@ def get_metrics( conf ):
     dispatch_value(info, 'total_commands_processed', 'counter', plugin_instance,
                    'commands_processed')
 
+    # send keyspace hits and misses, if they exist
+    if 'keyspace_hits' in info: dispatch_value(info, 'keyspace_hits', 'derive', plugin_instance)
+    if 'keyspace_misses' in info: dispatch_value(info, 'keyspace_misses', 'derive', plugin_instance)
+
     # send replication stats, but only if they exist (some belong to master only, some to slaves only)
     if 'master_repl_offset' in info: dispatch_value(info, 'master_repl_offset', 'gauge', plugin_instance)
     if 'master_last_io_seconds_ago' in info: dispatch_value(info, 'master_last_io_seconds_ago', 'gauge', plugin_instance)
