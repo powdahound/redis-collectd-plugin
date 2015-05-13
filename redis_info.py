@@ -184,7 +184,10 @@ def get_metrics( conf ):
     dispatch_value(info, 'blocked_clients', 'gauge', plugin_instance)
     dispatch_value(info, 'evicted_keys', 'gauge', plugin_instance)
     dispatch_value(info, 'used_memory', 'bytes', plugin_instance)
+    dispatch_value(info, 'used_memory_peak', 'bytes', plugin_instance)
     dispatch_value(info, 'changes_since_last_save', 'gauge', plugin_instance)
+    dispatch_value(info, 'instantaneous_ops_per_sec', 'gauge', plugin_instance)
+    dispatch_value(info, 'rdb_bgsave_in_progress', 'gauge', plugin_instance)
     dispatch_value(info, 'total_connections_received', 'counter', plugin_instance,
                    'connections_received')
     dispatch_value(info, 'total_commands_processed', 'counter', plugin_instance,
