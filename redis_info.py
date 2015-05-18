@@ -15,6 +15,9 @@
 #
 # Authors:
 #   Garret Heaton <powdahound at gmail.com>
+# Contributors:
+#   Pierre Mavro <p.mavro@criteo.com> / Deimosfr <deimos at deimos.fr>
+#   https://github.com/powdahound/redis-collectd-plugin/graphs/contributors
 #
 # About this plugin:
 #   This plugin uses collectd's Python plugin to record Redis information.
@@ -34,6 +37,7 @@ import re
 VERBOSE_LOGGING = False
 
 CONFIGS = []
+REDIS_INFO = {}
 
 def fetch_info( conf ):
     """Connect to Redis server and request info"""
@@ -119,6 +123,8 @@ def configure_callback(conf):
     for node in conf.children:
         key = node.key.lower()
         val = node.values[0]
+        log_verbose('Analyzing config %s key (value: %s)' % (key, val))
+        searchObj = re.search( r'redis_(.*)$', key, re.M|re.I)
 
         if key == 'host':
             host = val
@@ -131,6 +137,10 @@ def configure_callback(conf):
             VERBOSE_LOGGING = bool(node.values[0]) or VERBOSE_LOGGING
         elif key == 'instance':
             instance = val
+        elif searchObj:
+            log_verbose('Matching expression found: key: %s - value: %s' % (searchObj.group(1), val))
+            global REDIS_INFO
+            REDIS_INFO[searchObj.group(1)] = val
         else:
             collectd.warning('redis_info plugin: Unknown config key: %s.' % key )
             continue
@@ -177,41 +187,15 @@ def get_metrics( conf ):
     if plugin_instance is None:
         plugin_instance = '{host}:{port}'.format(host=conf['host'], port=conf['port'])
 
-    # send high-level values
-    dispatch_value(info, 'uptime_in_seconds','gauge', plugin_instance)
-    dispatch_value(info, 'connected_clients', 'gauge', plugin_instance)
-    dispatch_value(info, 'connected_slaves', 'gauge', plugin_instance)
-    dispatch_value(info, 'blocked_clients', 'gauge', plugin_instance)
-    dispatch_value(info, 'evicted_keys', 'gauge', plugin_instance)
-    dispatch_value(info, 'used_memory', 'bytes', plugin_instance)
-    dispatch_value(info, 'used_memory_peak', 'bytes', plugin_instance)
-    dispatch_value(info, 'changes_since_last_save', 'gauge', plugin_instance)
-    dispatch_value(info, 'instantaneous_ops_per_sec', 'gauge', plugin_instance)
-    dispatch_value(info, 'rdb_bgsave_in_progress', 'gauge', plugin_instance)
-    dispatch_value(info, 'total_connections_received', 'counter', plugin_instance,
-                   'connections_received')
-    dispatch_value(info, 'total_commands_processed', 'counter', plugin_instance,
-                   'commands_processed')
+    for key, val in REDIS_INFO.iteritems():
+        #log_verbose('key: %s - value: %s' % (key, val))
+        if key == 'total_connections_received':
+            dispatch_value(info, 'total_connections_received', 'counter', plugin_instance, 'connections_received')
+        elif key == 'total_commands_processed':
+            dispatch_value(info, 'total_commands_processed', 'counter', plugin_instance, 'commands_processed')
+        else:
+            dispatch_value(info, key, val, plugin_instance)
 
-    # send keyspace hits and misses, if they exist
-    if 'keyspace_hits' in info: dispatch_value(info, 'keyspace_hits', 'derive', plugin_instance)
-    if 'keyspace_misses' in info: dispatch_value(info, 'keyspace_misses', 'derive', plugin_instance)
-
-    # send replication stats, but only if they exist (some belong to master only, some to slaves only)
-    if 'master_repl_offset' in info: dispatch_value(info, 'master_repl_offset', 'gauge', plugin_instance)
-    if 'master_last_io_seconds_ago' in info: dispatch_value(info, 'master_last_io_seconds_ago', 'gauge', plugin_instance)
-    if 'slave_repl_offset' in info: dispatch_value(info, 'slave_repl_offset', 'gauge', plugin_instance)
-
-    # database and vm stats
-    for key in info:
-        if key.startswith('repl_'):
-            dispatch_value(info, key, 'gauge', plugin_instance)
-        if key.startswith('vm_stats_'):
-            dispatch_value(info, key, 'gauge', plugin_instance)
-        if key.startswith('db'):
-            dispatch_value(info[key], 'keys', 'gauge', plugin_instance, '%s-keys' % key)
-        if key.startswith('slave'):
-            dispatch_value(info[key], 'delay', 'gauge', plugin_instance, '%s-delay' % key)
 
 def log_verbose(msg):
     if not VERBOSE_LOGGING:

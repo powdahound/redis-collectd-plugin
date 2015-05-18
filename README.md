@@ -3,7 +3,7 @@ redis-collectd-plugin
 
 A [Redis](http://redis.google.code.com) plugin for [collectd](http://collectd.org) using collectd's [Python plugin](http://collectd.org/documentation/manpages/collectd-python.5.shtml).
 
-Data captured includes:
+You can capture any kind of Redis metrics like:
 
  * Memory used
  * Commands processed per second
@@ -24,20 +24,47 @@ Configuration
 -------------
 Add the following to your collectd config **or** use the included redis.conf.
 
+```
+    # Configure the redis_info-collectd-plugin
+
     <LoadPlugin python>
       Globals true
     </LoadPlugin>
-    
+
     <Plugin python>
       ModulePath "/opt/collectd/lib/collectd/plugins/python"
       Import "redis_info"
-    
+
       <Module redis_info>
         Host "localhost"
         Port 6379
+        # Un-comment to use AUTH
+        #Auth "1234"
         Verbose false
+        #Instance "instance_1"
+        # Catch Redis metrics (prefix with Redis_)
+        Redis_uptime_in_seconds "gauge"
+        Redis_uptime_in_days "gauge"
+        Redis_lru_clock "counter"
+        Redis_connected_clients "gauge"
+        Redis_connected_slaves "gauge"
+        Redis_blocked_clients "gauge"
+        Redis_evicted_keys "gauge"
+        Redis_used_memory "bytes"
+        Redis_used_memory_peak "bytes"
+        Redis_changes_since_last_save "gauge"
+        Redis_instantaneous_ops_per_sec "gauge"
+        Redis_rdb_bgsave_in_progress "gauge"
+        Redis_total_connections_received "counter"
+        Redis_total_commands_processed "counter"
+        Redis_keyspace_hits "derive"
+        Redis_keyspace_misses "derive"
+        #Redis_master_repl_offset "gauge"
+        #Redis_master_last_io_seconds_ago "gauge"
+        #Redis_slave_repl_offset "gauge"
       </Module>
     </Plugin>
+```
 
 ### Multiple Redis instances
 
@@ -52,18 +79,32 @@ You can configure to monitor multiple redis instances by the same machine by rep
     Host "127.0.0.1"
     Port 9100
     Verbose true
+    Instance "instance_9100"
+    Redis_uptime_in_seconds "gauge"
+    Redis_used_memory "bytes"
+    Redis_used_memory_peak "bytes"
   </Module>
 
   <Module redis_info>
     Host "127.0.0.1"
     Port 9101
     Verbose true
+    Instance "instance_9101"
+    Redis_uptime_in_seconds "gauge"
+    Redis_used_memory "bytes"
+    Redis_used_memory_peak "bytes"
+    Redis_master_repl_offset "gauge"
   </Module>
   
   <Module redis_info>
     Host "127.0.0.1"
     Port 9102
     Verbose true
+    Instance "instance_9102"
+    Redis_uptime_in_seconds "gauge"
+    Redis_used_memory "bytes"
+    Redis_used_memory_peak "bytes"
+    Redis_slave_repl_offset "gauge"
   </Module>
 </Plugin>
 ```
