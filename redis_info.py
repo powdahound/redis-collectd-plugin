@@ -162,7 +162,11 @@ def dispatch_value(info, key, type, plugin_instance=None, type_instance=None):
     if not type_instance:
         type_instance = key
 
-    value = int(info[key])
+    try:
+        value = int(info[key])
+    except ValueError:
+        value = float(info[key])
+
     log_verbose('Sending value: %s=%s' % (type_instance, value))
 
     val = collectd.Values(plugin='redis_info')
