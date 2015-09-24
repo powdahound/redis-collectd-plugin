@@ -43,11 +43,11 @@ def fetch_info( conf ):
     """Connect to Redis server and request info"""
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect((conf[ 'host' ], conf['port']))
+        s.connect((conf['host'], conf['port']))
         log_verbose('Connected to Redis at %s:%s' % (conf[ 'host' ], conf['port']))
     except socket.error, e:
         collectd.error('redis_info plugin: Error connecting to %s:%d - %r'
-                       % (conf[ 'host' ], conf['port'], e))
+                       % (conf['host'], conf['port'], e))
         return None
 
     fp = s.makefile('r')
@@ -61,13 +61,20 @@ def fetch_info( conf ):
             # -ERR invalid password
             # -ERR Client sent AUTH, but no password is set
             collectd.error('redis_info plugin: Error sending auth to %s:%d - %r'
-                           % (conf[ 'host' ], conf['port'], status_line))
+                           % (conf['host'], conf['port'], status_line))
             return None
 
     log_verbose('Sending info command')
     s.sendall('info\r\n')
 
     status_line = fp.readline()
+
+    if status_line.startswith('-'):
+        collectd.error('redis_info plugin: Error response from %s:%d - %r'
+                       % (conf['host'], conf['port'], status_line))
+        s.close()
+        return None
+
     content_length = int(status_line[1:-1]) # status_line looks like: $<content_length>
     data = fp.read(content_length)
     log_verbose('Received data: %s' % data)
