@@ -103,12 +103,12 @@ def parse_info(info_lines):
         # slave lines look like "slave0:ip=192.168.0.181,port=6379,state=online,offset=1650991674247,lag=1"
         if ',' in val:
             split_val = val.split(',')
-            val = {}
             for sub_val in split_val:
                 k, _, v = sub_val.rpartition('=')
-                val[k] = v
-
-        info[key] = val
+                sub_key = "{0}_{1}".format(key, k)
+                info[sub_key] = v
+        else:
+            info[key] = val
 
     info["changes_since_last_save"] = info.get("changes_since_last_save", info.get("rdb_changes_since_last_save"))
 
