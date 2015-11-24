@@ -42,7 +42,8 @@ Add the following to your collectd config **or** use the included redis.conf.
         #Auth "1234"
         Verbose false
         #Instance "instance_1"
-        # Catch Redis metrics (prefix with Redis_)
+        # Redis metrics to collect (prefix with Redis_)
+        Redis_db0_keys "gauge"
         Redis_uptime_in_seconds "gauge"
         Redis_uptime_in_days "gauge"
         Redis_lru_clock "counter"
