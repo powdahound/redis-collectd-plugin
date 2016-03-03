@@ -39,12 +39,13 @@ VERBOSE_LOGGING = False
 CONFIGS = []
 REDIS_INFO = {}
 
-def fetch_info( conf ):
+
+def fetch_info(conf):
     """Connect to Redis server and request info"""
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((conf['host'], conf['port']))
-        log_verbose('Connected to Redis at %s:%s' % (conf[ 'host' ], conf['port']))
+        log_verbose('Connected to Redis at %s:%s' % (conf['host'], conf['port']))
     except socket.error, e:
         collectd.error('redis_info plugin: Error connecting to %s:%d - %r'
                        % (conf['host'], conf['port'], e))
@@ -115,6 +116,7 @@ def parse_info(info_lines):
 
     return info
 
+
 def configure_callback(conf):
     """Receive configuration block"""
     host = None
@@ -126,7 +128,7 @@ def configure_callback(conf):
         key = node.key.lower()
         val = node.values[0]
         log_verbose('Analyzing config %s key (value: %s)' % (key, val))
-        searchObj = re.search( r'redis_(.*)$', key, re.M|re.I)
+        searchObj = re.search(r'redis_(.*)$', key, re.M|re.I)
 
         if key == 'host':
             host = val
@@ -142,7 +144,7 @@ def configure_callback(conf):
         elif searchObj:
             log_verbose('Matching expression found: key: %s - value: %s' % (searchObj.group(1), val))
             global REDIS_INFO
-            REDIS_INFO[searchObj.group(1)] = val
+            REDIS_INFO[searchObj.group(1), val] = True
         else:
             collectd.warning('redis_info plugin: Unknown config key: %s.' % key )
             continue
@@ -153,6 +155,8 @@ def configure_callback(conf):
 
 def dispatch_value(info, key, type, plugin_instance=None, type_instance=None):
     """Read a key from info response data and dispatch a value"""
+
+
     if key not in info:
         collectd.warning('redis_info plugin: Info key not found: %s' % key)
         return
@@ -193,11 +197,12 @@ def get_metrics( conf ):
     if plugin_instance is None:
         plugin_instance = '{host}:{port}'.format(host=conf['host'], port=conf['port'])
 
-    for key, val in REDIS_INFO.iteritems():
-        #log_verbose('key: %s - value: %s' % (key, val))
-        if key == 'total_connections_received':
+    for keyTuple, val in REDIS_INFO.iteritems():
+        key, val = keyTuple
+
+        if key == 'total_connections_received' and val == 'counter':
             dispatch_value(info, 'total_connections_received', 'counter', plugin_instance, 'connections_received')
-        elif key == 'total_commands_processed':
+        elif key == 'total_commands_processed' and val == 'counter':
             dispatch_value(info, 'total_commands_processed', 'counter', plugin_instance, 'commands_processed')
         else:
             dispatch_value(info, key, val, plugin_instance)
