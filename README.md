@@ -96,7 +96,7 @@ You can configure to monitor multiple redis instances by the same machine by rep
     Redis_used_memory_peak "bytes"
     Redis_master_repl_offset "gauge"
   </Module>
-  
+
   <Module redis_info>
     Host "127.0.0.1"
     Port 9102
@@ -134,6 +134,23 @@ If you want to set a static value for the plugin instance, use the ```Instance``
 This will result in metric names like: ```collectd.redis_info.redis-prod.bytes.used_memory```
 
 ```Instance``` can be empty, in this case the name of the metric will not contain any reference to the host/port. If it is omitted, the host:port value is added to the metric name.
+
+### Multiple Data source types
+You can send multiple data source types from same key by specifying it in the Module:
+
+```
+...
+  <Module redis_info>
+    Host "localhost"
+    Port 6379
+
+    Redis_total_net_input_bytes "bytes"
+    Redis_total_net_output_bytes "bytes"
+    Redis_total_net_input_bytes "derive"
+    Redis_total_net_output_bytes "derive"
+  </Module>
+...
+```
 
 Graph examples
 --------------
