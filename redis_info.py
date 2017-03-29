@@ -37,7 +37,6 @@ import re
 VERBOSE_LOGGING = False
 
 CONFIGS = []
-REDIS_INFO = {}
 
 
 def fetch_info(conf):
@@ -79,10 +78,37 @@ def fetch_info(conf):
     content_length = int(status_line[1:-1])  # status_line looks like: $<content_length>
     data = fp.read(content_length)
     log_verbose('Received data: %s' % data)
+
+    # process 'info commandstats'
+    log_verbose('Sending info commandstats command')
+    s.sendall('info commandstats\r\n')
+    fp.readline()  # skip first line in the response because it is empty
+    status_line = fp.readline()
+    log_verbose('Received line: %s' % status_line)
+    content_length = int(status_line[1:-1])  # status_line looks like: $<content_length>
+    datac = fp.read(content_length)  # fetch commandstats to different data buffer
+    log_verbose('Received data: %s' % datac)
+
     s.close()
 
-    linesep = '\r\n' if '\r\n' in data else '\n'
-    return parse_info(data.split(linesep))
+    linesep = '\r\n' if '\r\n' in data else '\n'  # assuming all is done in the same connection...
+    data_dict = parse_info(data.split(linesep))
+    datac_dict = parse_info(datac.split(linesep))
+    # let us see more raw data just in case
+    log_verbose('Data: %s' % len(data_dict))
+    log_verbose('Datac: %s' % len(datac_dict))
+
+    # merge two data sets into one
+    data_full = data_dict.copy()
+    data_full.update(datac_dict)
+    log_verbose('Data Full: %s' % len(data_full))
+
+    # this generates hundreds of lines but helps in debugging a lot
+    if VERBOSE_LOGGING:
+        for key in data_full:
+            log_verbose('Data Full detail: %s = %s' % (key, data_full[key]))
+
+    return data_full
 
 
 def parse_info(info_lines):
@@ -123,6 +149,7 @@ def configure_callback(conf):
     port = None
     auth = None
     instance = None
+    redis_info = {}
 
     for node in conf.children:
         key = node.key.lower()
@@ -143,22 +170,21 @@ def configure_callback(conf):
             instance = val
         elif searchObj:
             log_verbose('Matching expression found: key: %s - value: %s' % (searchObj.group(1), val))
-            global REDIS_INFO
-            REDIS_INFO[searchObj.group(1), val] = True
+            redis_info[searchObj.group(1), val] = True
         else:
             collectd.warning('redis_info plugin: Unknown config key: %s.' % key)
             continue
 
-    log_verbose('Configured with host=%s, port=%s, instance name=%s, using_auth=%s' % (host, port, instance, auth!=None))
+    log_verbose('Configured with host=%s, port=%s, instance name=%s, using_auth=%s, redis_info_len=%s' % (host, port, instance, auth!=None, len(redis_info)))
 
-    CONFIGS.append({'host': host, 'port': port, 'auth': auth, 'instance': instance})
+    CONFIGS.append({'host': host, 'port': port, 'auth': auth, 'instance': instance, 'redis_info': redis_info})
 
 
 def dispatch_value(info, key, type, plugin_instance=None, type_instance=None):
     """Read a key from info response data and dispatch a value"""
 
     if key not in info:
-        collectd.warning('redis_info plugin: Info key not found: %s' % key)
+        collectd.warning('redis_info plugin: Info key not found: %s, Instance: %s' % (key, plugin_instance))
         return
 
     if plugin_instance is None:
@@ -199,7 +225,7 @@ def get_metrics(conf):
     if plugin_instance is None:
         plugin_instance = '{host}:{port}'.format(host=conf['host'], port=conf['port'])
 
-    for keyTuple, val in REDIS_INFO.iteritems():
+    for keyTuple, val in conf['redis_info'].iteritems():
         key, val = keyTuple
 
         if key == 'total_connections_received' and val == 'counter':
