@@ -76,7 +76,7 @@ def fetch_info(conf):
         s.close()
         return None
 
-    content_length = int(status_line[1:-1]) # status_line looks like: $<content_length>
+    content_length = int(status_line[1:-1])  # status_line looks like: $<content_length>
     data = fp.read(content_length)
     log_verbose('Received data: %s' % data)
     s.close()
@@ -146,16 +146,16 @@ def configure_callback(conf):
             global REDIS_INFO
             REDIS_INFO[searchObj.group(1), val] = True
         else:
-            collectd.warning('redis_info plugin: Unknown config key: %s.' % key )
+            collectd.warning('redis_info plugin: Unknown config key: %s.' % key)
             continue
 
-    log_verbose('Configured with host=%s, port=%s, instance name=%s, using_auth=%s' % ( host, port, instance, auth!=None))
+    log_verbose('Configured with host=%s, port=%s, instance name=%s, using_auth=%s' % (host, port, instance, auth!=None))
 
-    CONFIGS.append( { 'host': host, 'port': port, 'auth':auth, 'instance':instance } )
+    CONFIGS.append({'host': host, 'port': port, 'auth': auth, 'instance': instance})
+
 
 def dispatch_value(info, key, type, plugin_instance=None, type_instance=None):
     """Read a key from info response data and dispatch a value"""
-
 
     if key not in info:
         collectd.warning('redis_info plugin: Info key not found: %s' % key)
@@ -182,12 +182,14 @@ def dispatch_value(info, key, type, plugin_instance=None, type_instance=None):
     val.values = [value]
     val.dispatch()
 
+
 def read_callback():
     for conf in CONFIGS:
-        get_metrics( conf )
+        get_metrics(conf)
 
-def get_metrics( conf ):
-    info = fetch_info( conf )
+
+def get_metrics(conf):
+    info = fetch_info(conf)
 
     if not info:
         collectd.error('redis plugin: No info received')
