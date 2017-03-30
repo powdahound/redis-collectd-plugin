@@ -80,7 +80,7 @@ Use below command and see which keys are present/missing:
 redis-cli -h redis-host info commandset
 ```
 
-For example certain versions have *command* but do not have *del* entries and so on.
+For example certain entries will not show up, because they were never used.
 Also if you enable verbose logging and see:
 
 ```text
