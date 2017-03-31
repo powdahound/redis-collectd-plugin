@@ -16,15 +16,19 @@ You can capture any kind of Redis metrics like:
 
 Install
 -------
- 1. Place redis_info.py in /opt/collectd/lib/collectd/plugins/python (assuming you have collectd installed to /opt/collectd).
+
+ 1. Place `redis_info.py` in `/opt/collectd/lib/collectd/plugins/python` (assuming you have collectd installed to /opt/collectd).
  2. Configure the plugin (see below).
  3. Restart collectd.
 
 Configuration
 -------------
-Add the following to your collectd config **or** use the included redis.conf.
 
-```
+Add the following to your collectd config **or** use the included redis.conf for full example.
+Notice, you will have to adjust *cmdset* section depending on the Redis version, see below.
+
+
+```text
     # Configure the redis_info-collectd-plugin
 
     <LoadPlugin python>
@@ -63,15 +67,34 @@ Add the following to your collectd config **or** use the included redis.conf.
         #Redis_master_repl_offset "gauge"
         #Redis_master_last_io_seconds_ago "gauge"
         #Redis_slave_repl_offset "gauge"
-      </Module>
+        Redis_cmdstat_info_calls "counter"
+        Redis_cmdstat_info_usec "counter"
+        Redis_cmdstat_info_usec_per_call "gauge"
+        </Module>
     </Plugin>
 ```
 
-### Multiple Redis instances
+Use below command and see which keys are present/missing:
 
-You can configure to monitor multiple redis instances by the same machine by repeating the <Module> section, such as:
+```bash
+redis-cli -h redis-host info commandset
+```
+
+For example certain entries will not show up, because they were never used.
+Also if you enable verbose logging and see:
+
+```text
+... collectd[6139]: redis_info plugin: Info key not found: cmdstat_del_calls, Instance: redis-server.tld.example.org:6379
 
 ```
+
+It means given redis server does not return such value, and you should comment out that from config, to avoid filling logs with not so useful data, not to mention that you may trigger dropping log lines.
+
+### Multiple Redis instances
+
+You can configure to monitor multiple redis instanceswith different config setups by the same machine by repeating the `<Module>` section, such as:
+
+```text
 <Plugin python>
   ModulePath "/opt/collectd_plugins"
   Import "redis_info"
@@ -106,13 +129,18 @@ You can configure to monitor multiple redis instances by the same machine by rep
     Redis_used_memory "bytes"
     Redis_used_memory_peak "bytes"
     Redis_slave_repl_offset "gauge"
+
+    # notice, this is not added in above sections
+    Redis_cmdstat_info_calls "counter"
+    Redis_cmdstat_info_usec "counter"
+    Redis_cmdstat_info_usec_per_call "gauge"
   </Module>
 </Plugin>
 ```
 
 These 3 redis instances listen on different ports, they have different plugin_instance combined by Host and Port:
 
-```
+```text
 "plugin_instance" => "127.0.0.1:9100",
 "plugin_instance" => "127.0.0.1:9101",
 "plugin_instance" => "127.0.0.1:9102",
@@ -122,7 +150,7 @@ These values will be part of the metric name emitted by collectd, e.g. ```collec
 
 If you want to set a static value for the plugin instance, use the ```Instance``` configuration option:
 
-```
+```text
 ...
   <Module redis_info>
     Host "127.0.0.1"
@@ -131,11 +159,13 @@ If you want to set a static value for the plugin instance, use the ```Instance``
   </Module>
 ...
 ```
+
 This will result in metric names like: ```collectd.redis_info.redis-prod.bytes.used_memory```
 
 ```Instance``` can be empty, in this case the name of the metric will not contain any reference to the host/port. If it is omitted, the host:port value is added to the metric name.
 
 ### Multiple Data source types
+
 You can send multiple data source types from same key by specifying it in the Module:
 
 ```
@@ -154,13 +184,17 @@ You can send multiple data source types from same key by specifying it in the Mo
 
 Graph examples
 --------------
-These graphs were created using collectd's [rrdtool plugin](http://collectd.org/wiki/index.php/Plugin:RRDtool) and [drraw](http://web.taranis.org/drraw/).
 
-![Clients connected](https://github.com/powdahound/redis-collectd-plugin/raw/master/screenshots/graph_clients_connected.png)
-![Commands/sec](https://github.com/powdahound/redis-collectd-plugin/raw/master/screenshots/graph_commands_per_sec.png)
-![db0 keys](https://github.com/powdahound/redis-collectd-plugin/raw/master/screenshots/graph_db0_keys.png)
-![Memory used](https://github.com/powdahound/redis-collectd-plugin/raw/master/screenshots/graph_memory_used.png)
+These graphs were created using collectd's [rrdtool plugin](http://collectd.org/wiki/index.php/Plugin:RRDtool), [drraw](http://web.taranis.org/drraw/) and [graphite](http://graphiteapp.org) with [grafana](https://grafana.com/).
+
+![Clients connected](./screenshots/graph_clients_connected.png)
+![Commands/sec](./screenshots/graph_commands_per_sec.png)
+![db0 keys](./screenshots/graph_db0_keys.png)
+![Memory used](./screenshots/graph_memory_used.png)
+![Command stats in grafana 1](./screenshots/collectd-redis-info-grafana-1.png)
+![Command stats in grafana 2](./screenshots/collectd-redis-info-grafana-2.png)
 
 Requirements
 ------------
+
  * collectd 4.9+
