@@ -1,6 +1,8 @@
 redis-collectd-plugin
 =====================
 
+**Project status:** I am no longer working with Redis + collectd so am not actively maintaining this project. High quality PRs are welcome. Please contact me if you're interested in helping to maintain the project.
+
 A [Redis](http://redis.io) plugin for [collectd](http://collectd.org) using collectd's [Python plugin](http://collectd.org/documentation/manpages/collectd-python.5.shtml).
 
 You can capture any kind of Redis metrics like:
