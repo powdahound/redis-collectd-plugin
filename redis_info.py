@@ -96,8 +96,8 @@ def fetch_info(conf):
     status_line = fp.readline()
     log_verbose('Received line: %s' % status_line)
     content_length = int(status_line[1:-1])  # status_line looks like: $<content_length>
-    datacluster_dict = fp.read(content_length)  # fetch cluster info to different data buffer
-    log_verbose('Received data: %s' % datacluster_dict)
+    datacluster = fp.read(content_length)  # fetch cluster info to different data buffer
+    log_verbose('Received data: %s' % datacluster)
 
     s.close()
 
