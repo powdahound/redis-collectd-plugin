@@ -88,19 +88,34 @@ def fetch_info(conf):
     content_length = int(status_line[1:-1])  # status_line looks like: $<content_length>
     datac = fp.read(content_length)  # fetch commandstats to different data buffer
     log_verbose('Received data: %s' % datac)
+    
+    # process 'cluster info'
+    log_verbose('Sending cluster info command')
+    s.sendall('cluster info\r\n')
+    fp.readline()  # skip first line in the response because it is empty
+    status_line = fp.readline()
+    log_verbose('Received line: %s' % status_line)
+    content_length = int(status_line[1:-1])  # status_line looks like: $<content_length>
+    datacluster_dict = fp.read(content_length)  # fetch cluster info to different data buffer
+    log_verbose('Received data: %s' % datacluster_dict)
 
     s.close()
 
     linesep = '\r\n' if '\r\n' in data else '\n'  # assuming all is done in the same connection...
     data_dict = parse_info(data.split(linesep))
     datac_dict = parse_info(datac.split(linesep))
+    datacluster_dict = parse_info(datacluster.split(linesep))
+
     # let us see more raw data just in case
     log_verbose('Data: %s' % len(data_dict))
     log_verbose('Datac: %s' % len(datac_dict))
+    log_verbose('Datacluster: %s' % len(datacluster_dict))
 
-    # merge two data sets into one
+    # merge three data sets into one
     data_full = data_dict.copy()
     data_full.update(datac_dict)
+    data_full.update(datacluster_dict)
+
     log_verbose('Data Full: %s' % len(data_full))
 
     # this generates hundreds of lines but helps in debugging a lot
