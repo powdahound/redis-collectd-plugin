@@ -90,31 +90,35 @@ def fetch_info(conf):
     log_verbose('Received data: %s' % datac)
     
     # process 'cluster info'
-    log_verbose('Sending cluster info command')
-    s.sendall('cluster info\r\n')
-    fp.readline()  # skip first line in the response because it is empty
-    status_line = fp.readline()
-    log_verbose('Received line: %s' % status_line)
-    content_length = int(status_line[1:-1])  # status_line looks like: $<content_length>
-    datacluster = fp.read(content_length)  # fetch cluster info to different data buffer
-    log_verbose('Received data: %s' % datacluster)
+    if conf['cluster']:
+      log_verbose('Sending cluster info command')
+      s.sendall('cluster info\r\n')
+      fp.readline()  # skip first line in the response because it is empty
+      status_line = fp.readline()
+      log_verbose('Received line: %s' % status_line)
+      content_length = int(status_line[1:-1])  # status_line looks like: $<content_length>
+      datacluster = fp.read(content_length)  # fetch cluster info to different data buffer
+      log_verbose('Received data: %s' % datacluster)
 
     s.close()
 
     linesep = '\r\n' if '\r\n' in data else '\n'  # assuming all is done in the same connection...
     data_dict = parse_info(data.split(linesep))
     datac_dict = parse_info(datac.split(linesep))
-    datacluster_dict = parse_info(datacluster.split(linesep))
+    if conf['cluster']:
+      datacluster_dict = parse_info(datacluster.split(linesep))
 
     # let us see more raw data just in case
     log_verbose('Data: %s' % len(data_dict))
     log_verbose('Datac: %s' % len(datac_dict))
-    log_verbose('Datacluster: %s' % len(datacluster_dict))
+    if conf['cluster']:
+      log_verbose('Datacluster: %s' % len(datacluster_dict))
 
     # merge three data sets into one
     data_full = data_dict.copy()
     data_full.update(datac_dict)
-    data_full.update(datacluster_dict)
+    if conf['cluster']:
+      data_full.update(datacluster_dict)
 
     log_verbose('Data Full: %s' % len(data_full))
 
@@ -163,6 +167,7 @@ def configure_callback(conf):
     host = None
     port = None
     auth = None
+    cluster = True
     instance = None
     redis_info = {}
 
@@ -178,6 +183,8 @@ def configure_callback(conf):
             port = int(val)
         elif key == 'auth':
             auth = val
+        elif key == 'cluster':
+            cluster = bool(node.values[0])
         elif key == 'verbose':
             global VERBOSE_LOGGING
             VERBOSE_LOGGING = bool(node.values[0]) or VERBOSE_LOGGING
@@ -190,9 +197,9 @@ def configure_callback(conf):
             collectd.warning('redis_info plugin: Unknown config key: %s.' % key)
             continue
 
-    log_verbose('Configured with host=%s, port=%s, instance name=%s, using_auth=%s, redis_info_len=%s' % (host, port, instance, auth!=None, len(redis_info)))
+    log_verbose('Configured with host=%s, port=%s, instance name=%s, using_auth=%s, cluster=%s, redis_info_len=%s' % (host, port, instance, auth!=None, cluster, len(redis_info)))
 
-    CONFIGS.append({'host': host, 'port': port, 'auth': auth, 'instance': instance, 'redis_info': redis_info})
+    CONFIGS.append({'host': host, 'port': port, 'auth': auth, 'instance': instance, 'cluster': cluster, 'redis_info': redis_info})
 
 
 def dispatch_value(info, key, type, plugin_instance=None, type_instance=None):
