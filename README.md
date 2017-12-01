@@ -46,6 +46,8 @@ Notice, you will have to adjust *cmdset* section depending on the Redis version,
         Port 6379
         # Un-comment to use AUTH
         #Auth "1234"
+        # Cluster mode expected by default
+        #Cluster false
         Verbose false
         #Instance "instance_1"
         # Redis metrics to collect (prefix with Redis_)
