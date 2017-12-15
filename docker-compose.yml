@@ -1,0 +1,10 @@
+collectd:
+  image: pataquets/collectd-python
+  net: container:redis
+  volumes:
+    - ./redis_info.py:/opt/collectd/lib/collectd/plugins/python/redis_info.py:ro
+    - ./redis.conf:/etc/collectd/conf.d/redis.conf:ro
+    - ./write-csv-stdout.conf:/etc/collectd/conf.d/write-csv-stdout.conf:ro
+
+redis:
+  image: redis
