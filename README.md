@@ -202,3 +202,19 @@ Requirements
 ------------
 
  * collectd 4.9+
+
+Devel workflow with Docker & Docker Compose
+-------------------------------------------
+You can start hacking right away by using the provided Docker Compose manifest. No devel packages nor libs need to be installed on development host, just Docker and Docker Compose and you are good to go!
+
+The Compose manifest launches a Redis server container based on ```redis[:latest]``` image (4.x as of Dec'17) and a collectd+python runtime container from ```pataquets/collectd-python``` image. Both containers share the same net iface to connect via ```localhost``` (not a best practice on production, but fair enough for developing). Also, the collectd container mounts from the Docker host's git repo directory:
+
+* The Python program file.
+* The ```redis.conf``` config file.
+* An additional collectd conf file to make al collectd readings to be sent to stdout (using the CSV plugin).
+
+Just hack, change confs and test by doing:
+```
+$ docker-compose up
+```
+Stop by ```CTRL+C```'ing. Rinse and repeat.
