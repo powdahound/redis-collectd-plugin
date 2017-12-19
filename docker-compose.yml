@@ -8,3 +8,4 @@ collectd:
 
 redis:
   image: redis
+  #command: --loglevel verbose
