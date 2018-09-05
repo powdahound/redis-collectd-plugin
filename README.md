@@ -81,7 +81,7 @@ Notice, you will have to adjust *cmdset* section depending on the Redis version,
 Use below command and see which keys are present/missing:
 
 ```bash
-redis-cli -h redis-host info commandset
+redis-cli -h redis-host info commandstats
 ```
 
 For example certain entries will not show up, because they were never used.
