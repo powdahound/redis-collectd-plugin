@@ -88,7 +88,17 @@ def fetch_info(conf):
     content_length = int(status_line[1:-1])  # status_line looks like: $<content_length>
     datac = fp.read(content_length)  # fetch commandstats to different data buffer
     log_verbose('Received data: %s' % datac)
-    
+
+    # process 'info server'
+    log_verbose('Sending info server command')
+    s.sendall('info server\r\n')
+    fp.readline()  # skip first line in the response because it is empty
+    status_line = fp.readline()
+    log_verbose('Received line: %s' % status_line)
+    content_length = int(status_line[1:-1])  # status_line looks like: $<content_length>
+    datas = fp.read(content_length)  # fetch server to different data buffer
+    log_verbose('Received data: %s' % datas)
+
     # process 'cluster info'
     if conf['cluster']:
       log_verbose('Sending cluster info command')
@@ -105,18 +115,21 @@ def fetch_info(conf):
     linesep = '\r\n' if '\r\n' in data else '\n'  # assuming all is done in the same connection...
     data_dict = parse_info(data.split(linesep))
     datac_dict = parse_info(datac.split(linesep))
+    datas_dict = parse_info(datas.split(linesep))
     if conf['cluster']:
       datacluster_dict = parse_info(datacluster.split(linesep))
 
     # let us see more raw data just in case
     log_verbose('Data: %s' % len(data_dict))
     log_verbose('Datac: %s' % len(datac_dict))
+    log_verbose('Datas: %s' % len(datas_dict))
     if conf['cluster']:
       log_verbose('Datacluster: %s' % len(datacluster_dict))
 
     # merge three data sets into one
     data_full = data_dict.copy()
     data_full.update(datac_dict)
+    data_full.update(datas_dict)
     if conf['cluster']:
       data_full.update(datacluster_dict)
 
